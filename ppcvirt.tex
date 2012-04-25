@@ -1,0 +1,140 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage{times}
+\usepackage{fullpage}
+
+\begin{document}
+
+\title{Efficient Virtualization on Embedded Power Platforms}
+\author{}
+\date{}
+\maketitle
+\thispagestyle{empty}
+
+\maketitle
+\begin{abstract}
+  Embedded Power-based processors are popular on embedded systems, and are increasingly
+  being used to run virtual machines\cite{XXX}. While the Power architecture meets the
+  Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
+  style virtualization, the performance overhead of virtualization remains high.
+  For example, workloads exhibiting a large amount of kernel activity typically
+  show 3-5x slowdowns over bare-metal.
+
+  Recent additions to the Linux kernel contain guest and host side paravirtual
+  extensions for Power. While these extensions improve performance significantly, they
+  are highly guest-intrusive, non-portable and cover only a subset of all possible
+  virtualization optimizations.
+
+  We present a set of host-side optimizations that achieve equal or better performance
+  than the aforementioned paravirtual extensions, yet being guest-agnostic. Our
+  prototype implementation based on Linux/KVM can run (largely) unmodified, untrusted
+  Power guests at near native performance for almost all workloads. The only
+  guest modification required is to include a device driver for our virtual
+  device which creates a small shared address space between the host and the guest.
+  After our modifications, KVM can boot a Linux guest 3x faster. Our solution
+  provides equivalent performance (sometimes outperforming by up to XX\%) to
+  the paravirtual approach previously included in the Linux kernel, without being
+  guest-specific.
+\end{abstract}
+\section{Introduction}
+Embedded Power Architecture is a dominant platform for embedded devices for it's
+favourable power/performance characteristics. Virtualization on these platforms is
+compelling for several applications\cite{XXX}. While newer Power platforms
+have explicit support for efficient virtualization\cite{XXX}, a majority of
+prevalent embedded devices run on older (and cheaper) Power platforms that use
+traditional trap-and-emulate style virtualization\cite{XXX}. Hence, efficient
+virtualization is highly desirable on these platforms.
+
+The current virtualization approach on Power platform uses traditional trap-and-emulate.
+The guest operating system is run unprivileged, causing each execution of a privileged
+operation to exit into the hypervisor. For guest workloads executing a large number
+of priviliged instructions, these exits can become a major source of performance
+overhead. Table~\ref{tab:kvm_performance} lists the performance of vanilla Linux/KVM
+on some common workloads.
+
+The poor performance of simple trap-and-emulate style virtualization has led to
+the inclusion of paravirtual virtualization extensions to the Linux kernel on both
+guest and host sides. The paravirtual extension in the guest rewrites the guest kernel
+code at load time to replace most privileged instructions with
+hypervisor-aware unprivileged counterparts. The unprivileged version of an
+otherwise privileged guest operation typically reads or writes to a hypervisor-visible
+shared address, thus providing an efficient mechanism for a {\em hypercall}.
+On the host side, a mechanism is provided to setup a shared address space with the guest,
+and to execute hypercalls on behalf of the guest. The third column in
+Table~\ref{tab:kvm_performance} lists the performance of Linux/KVM with paravirtual
+extensions. In this case, both guest and host are running Linux with their respective
+paravirtual extensions. The performance improves significantly for many common
+workloads.
+
+There are some shortcomings to the paravirtual approach. Firstly, extensive guest
+modifications are required making it highly specific to Linux. A different
+guest OS, or subsequent updates to Linux, require substantial software
+development and maintenance effort. Secondly, all guest
+privileged instructions are rewritten only at kernel load time. Hence,
+optimizations are
+not possible for privileged code running as loadable kernel modules. This
+approach will also break in the presence of dynamically generated code, and makes
+assumptions about the programming discipline in Linux. For example, this approach
+assumes that Linux kernel will never read it's own code as data. Violation of
+these programming disciplines in future Linux versions, can render these paravirtual
+extensions unusable.
+
+We propose a host-side adaptive binary translation mechanism to optimize guest
+privileged instructions at runtime. Our approach requires almost no guest modifications
+(except a virtual device driver to setup shared address space), and achieves
+comparable or better performance than paravirtual approaches. Because we translate
+guest code at runtime (and not at load time, as done in the paravirtual approach), we
+can optimize code in both the main kernel and the loadable modules. Our approach also
+does not assume anything about the guest, and ports seamlessly to different
+guests or different versions of the same guest.
+The last column in Table~\ref{tab:kvm_performance} lists the performance results of
+our host-side binary translation approach.
+
+Our binary translator is very different from the x86-based binary translator
+previously implemented by VMware. XXX
+
+There are many interesting problems we solved during the development of our
+binary translation solution. Discuss problems and their brief solutions.
+
+In summary, this paper presents an efficient host-side optimization solution for
+Power virtualization. Our approach is based on binary translation and assumes no
+guest information. The performance of our prototype is similar or better than
+existing paravirtual solutions. We also discuss some interesting challenges we solved,
+which were unique to embedded Power-based platforms. The paper is organized as
+follows. XXX
+
+\section{Performance Characterization}
+Discuss the performance of base KVM and analyze it. Talk about the number of exits
+resulting from each type of privileged instruction. Also, talk about the number
+of exits resulting from each PC value.
+
+\section{Lightweight Adaptive Binary Translation}
+Discuss our BT implementation. Discuss the different opcodes and their replaced
+counterparts
+\subsection{Shared Address Space}
+Discuss how a shared address space is setup between the guest and the host.
+
+\section{Maintaining Guest Fidelity through Read/Write Tracing}
+Discuss our tracing mechanism.
+
+\section{Experimental Results - I}
+Discuss the experimental results obtained after implementing binary translation
+and tracing. Discuss the sources of overhead, and TLB thrashing.
+
+\section{Further Optimizations}
+\subsection{Adaptive TLB splitting/merging}
+\subsection{Optimization of DSI reads}
+
+\section{Experimental Results - II}
+Compare with base KVM, paravirtual, and baremetal. Discuss sources of overhead. Discuss
+why performance has improved.
+
+\section{Comparison with known x86-based binary translation approach}
+Compare with VMware's x86-based binary translation approach.
+
+\section{Conclusion}
+
+\bibliography{millirollbacks}
+\bibliographystyle{abbrv}
+
+\end{document}
